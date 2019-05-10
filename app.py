@@ -2,32 +2,31 @@
     Raspberry Pi GPIO Status and Control
 """
 import time
-import RPi.GPIO as GPIO
 import flask
+import RPi.GPIO as GPIO
 
-app = flask.Flask(__name__)
-
-
-def push_button():
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(7, GPIO.OUT)
-    GPIO.output(7, GPIO.LOW)
-    time.sleep(0.5)
-    GPIO.output(7, GPIO.HIGH)
-    GPIO.cleanup()
+APP = flask.Flask(__name__)
 
 
-@app.route("/")
-@app.route("/index")
+@APP.route("/")
+@APP.route("/index")
 def index():
+    """
+    render the index page
+    :return:
+    """
     template_data = {
         'title': 'Garage Door'
     }
     return flask.render_template('index.html', **template_data)
 
 
-@app.route("/button")
+@APP.route("/button")
 def push_button():
+    """
+    handle the button press (activate the GPIO pin to trigger the relay)
+    :return:
+    """
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(7, GPIO.OUT)
     GPIO.output(7, GPIO.LOW)
@@ -38,4 +37,4 @@ def push_button():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=80, debug=False)
+    APP.run(host='0.0.0.0', port=80, debug=False)
