@@ -8,7 +8,7 @@ RestartSec=5
 Restart=always
 StandardOutput=journal+console
 StandardError=journal+console
-ExecStart=/usr/bin/python /opt/src/garage_door_opener/app.py
+ExecStart=/usr/bin/python3 /opt/src/garage_door_opener/app.py
 
 [Install]
 WantedBy=multi-user.target
