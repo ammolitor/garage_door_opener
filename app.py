@@ -10,6 +10,8 @@ from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 import RPi.GPIO as GPIO
 
 APP = flask.Flask(__name__)
+ACTIVATE_GPIO = 7
+SENSE_GPIO = 2
 
 
 def setup_logging(name, level):
@@ -63,8 +65,8 @@ def callback(client, userdata, message):
     """
     del client
     del userdata
-    LOG.debug("raw message: %s", )
-    LOG.info("received message: %s on topic: %s", message.payload,
+    LOG.debug('raw message: %s', )
+    LOG.info('received message: %s on topic: %s', message.payload,
              message.topic)
     activate()
     publish_event('mqtt')
@@ -76,13 +78,13 @@ def door_status():
     :return:
     """
     GPIO.setmode(GPIO.BCM)
-    GPIO.setup(2, GPIO.IN)
+    GPIO.setup(SENSE_GPIO, GPIO.IN)
     ret_val = None
-    LOG.debug('door_status: ********** GPIO 2 is: %s **********', GPIO.input(2))
-    if GPIO.input(2) == 1:
+    LOG.debug('door_status: ********** GPIO %s is: %s **********', SENSE_GPIO, GPIO.input(SENSE_GPIO))
+    if GPIO.input(SENSE_GPIO) == 1:
         LOG.info('door_status: DOOR OPEN')
         ret_val = ('CLOSE', 'DOOR IS OPEN')
-    elif GPIO.input(2) == 0:
+    elif GPIO.input(SENSE_GPIO) == 0:
         LOG.info('door_status: DOOR CLOSED')
         ret_val = ('OPEN', 'DOOR IS CLOSED')
     else:
@@ -98,25 +100,25 @@ def activate():
     """
     LOG.info('activate: SWITCH ACTIVATED')
     GPIO.setmode(GPIO.BCM)
-    GPIO.setup(7, GPIO.OUT)
-    GPIO.output(7, GPIO.LOW)
+    GPIO.setup(ACTIVATE_GPIO, GPIO.OUT)
+    GPIO.output(ACTIVATE_GPIO, GPIO.LOW)
     time.sleep(0.5)
-    GPIO.output(7, GPIO.HIGH)
+    GPIO.output(ACTIVATE_GPIO, GPIO.HIGH)
     GPIO.cleanup()
 
 
-@APP.route("/")
-@APP.route("/index")
+@APP.route('/')
+@APP.route('/index')
 def index():
     """
     render the index page
     :return:
     """
     status = door_status()
-    if status == 'OPEN':
+    if status[0] == 'OPEN':
         text_color = '#006600'
         bg_color = '#CCFFCC'
-    elif status == 'CLOSE':
+    elif status[0] == 'CLOSE':
         text_color = '#660000'
         bg_color = '#FFCCCC'
     else:
@@ -132,7 +134,7 @@ def index():
     return flask.render_template('index.html', **template_data)
 
 
-@APP.route("/button")
+@APP.route('/button')
 def push_button():
     """
     handle the button press (activate the GPIO pin to trigger the relay)
@@ -144,7 +146,7 @@ def push_button():
     return flask.redirect(flask.url_for('index'))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     LOG = setup_logging('garage_door_opener', logging.INFO)
     MQTT_LOG = setup_logging('AWSIoTPythonSDK.core', logging.INFO)
 
@@ -166,5 +168,9 @@ if __name__ == "__main__":
               CA_FILE_PATH, PRIVATE_KEY_PATH, CERTIFICATE_PATH)
     MQTT_CLIENT.connect()
 
+try:
     # MQTT_CLIENT.subscribe('garage_door_opener/commands', 0, callback)
     APP.run(host='0.0.0.0', port=80, debug=False)
+finally:
+    LOG.debug('CLEANING UP')
+    GPIO.cleanup()
