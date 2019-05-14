@@ -1,12 +1,18 @@
 <!DOCTYPE html>
+<html lang="en">
 <head>
     <title>{{ title }}</title>
     <link rel="stylesheet" href='../static/style.css'/>
 </head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <body>
-<h1>{{ title }}</h1>
-<a href="/button" class="button">OPEN/CLOSE</a>
-<h2>{{ command }}</h2>
+<h1 class="title">{{ title }}</h1>
+<a href="/button" class="link">
+    <div class="button"
+         style="color: {{ color }}; background-color: {{ background }}">
+        {{ button_text }}
+    </div>
+</a>
+<p>{{ door_state }}</p>
 </body>
 </html>

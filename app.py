@@ -35,7 +35,7 @@ def setup_logging(name, level):
     return log
 
 
-def publish_event():
+def publish_event(source):
     """
     publish mqtt message
     :return:
@@ -43,13 +43,66 @@ def publish_event():
     message = {
         'timestamp':
         datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f'),
-        'event': 'door_activated'
+        'event': 'door_activated',
+        'source': source
     }
     topic = 'garage_door_opener/events'
     payload = json.dumps(message)
     qos = 1
     MQTT_CLIENT.publish(topic, payload, qos)
     LOG.info('Published Message: %s', message)
+
+
+def callback(client, userdata, message):
+    """
+    custom callback for MQTT messages
+    :param client:
+    :param userdata:
+    :param message:
+    :return:
+    """
+    del client
+    del userdata
+    LOG.debug("raw message: %s", )
+    LOG.info("received message: %s on topic: %s", message.payload,
+             message.topic)
+    activate()
+    publish_event('mqtt')
+
+
+def door_status():
+    """
+    fetch door status from GPIO pins (via reed switch)
+    :return:
+    """
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(2, GPIO.IN)
+    ret_val = None
+    LOG.debug('door_status: ********** GPIO 2 is: %s **********', GPIO.input(2))
+    if GPIO.input(2) == 1:
+        LOG.info('door_status: DOOR OPEN')
+        ret_val = ('CLOSE', 'DOOR IS OPEN')
+    elif GPIO.input(2) == 0:
+        LOG.info('door_status: DOOR CLOSED')
+        ret_val = ('OPEN', 'DOOR IS CLOSED')
+    else:
+        LOG.error('door_status: UNABLE TO GET DOOR STATUS')
+    GPIO.cleanup()
+    return ret_val
+
+
+def activate():
+    """
+    handle the button press (activate the GPIO pin to trigger the relay)
+    :return:
+    """
+    LOG.info('activate: SWITCH ACTIVATED')
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(7, GPIO.OUT)
+    GPIO.output(7, GPIO.LOW)
+    time.sleep(0.5)
+    GPIO.output(7, GPIO.HIGH)
+    GPIO.cleanup()
 
 
 @APP.route("/")
@@ -59,8 +112,23 @@ def index():
     render the index page
     :return:
     """
-    LOG.debug('index rendered')
-    template_data = {'title': 'Garage Door'}
+    status = door_status()
+    if status == 'OPEN':
+        text_color = '#006600'
+        bg_color = '#CCFFCC'
+    elif status == 'CLOSE':
+        text_color = '#660000'
+        bg_color = '#FFCCCC'
+    else:
+        text_color = '#333333'
+        bg_color = '#EEEEEE'
+    template_data = {
+        'title': 'Garage Door',
+        'button_text': status[0],
+        'door_state': status[1],
+        'color': text_color,
+        'background': bg_color
+    }
     return flask.render_template('index.html', **template_data)
 
 
@@ -70,14 +138,9 @@ def push_button():
     handle the button press (activate the GPIO pin to trigger the relay)
     :return:
     """
-    LOG.debug('button activated')
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(7, GPIO.OUT)
-    GPIO.output(7, GPIO.LOW)
-    time.sleep(0.5)
-    GPIO.output(7, GPIO.HIGH)
-    GPIO.cleanup()
-    publish_event()
+    activate()
+    publish_event('web interface')
+    time.sleep(10)  # wait for door to close before returning
     return flask.redirect(flask.url_for('index'))
 
 
@@ -96,14 +159,12 @@ if __name__ == "__main__":
     MQTT_CLIENT.configureCredentials(CA_FILE_PATH, PRIVATE_KEY_PATH,
                                      CERTIFICATE_PATH)
     MQTT_CLIENT.configureAutoReconnectBackoffTime(1, 32, 20)
-    MQTT_CLIENT.configureOfflinePublishQueueing(
-        -1)  # Infinite offline Publish queueing
-    MQTT_CLIENT.configureDrainingFrequency(2)  # Draining: 2 Hz
-    MQTT_CLIENT.configureConnectDisconnectTimeout(10)  # 10 sec
-    MQTT_CLIENT.configureMQTTOperationTimeout(5)  # 5 sec
-    LOG.debug(
-        'Connecting with CAFilePath: %s  KeyPath: %s  CertificatePath: %s',
-        CA_FILE_PATH, PRIVATE_KEY_PATH, CERTIFICATE_PATH)
+    MQTT_CLIENT.configureOfflinePublishQueueing(0)
+    MQTT_CLIENT.configureConnectDisconnectTimeout(10)
+    MQTT_CLIENT.configureMQTTOperationTimeout(5)
+    LOG.debug('CONNECT: CAFilePath: %s  KeyPath: %s  CertificatePath: %s',
+              CA_FILE_PATH, PRIVATE_KEY_PATH, CERTIFICATE_PATH)
     MQTT_CLIENT.connect()
 
+    # MQTT_CLIENT.subscribe('garage_door_opener/commands', 0, callback)
     APP.run(host='0.0.0.0', port=80, debug=False)

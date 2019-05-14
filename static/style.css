@@ -1,15 +1,26 @@
 body {
     background: white;
-    color: black;
-    font-family: "sans-serif"
+    color: #333333;
+    font-family: "Open Sans", Arial, Helvetica, sans-serif;
+}
+
+.title {
+    font-family: "Open Sans", Arial, Helvetica, sans-serif;
+}
+
+.link {
+    font-family: "Open Sans", Arial, Helvetica, sans-serif;
+    text-decoration: none;
+    font-weight: bold;
 }
 
 .button {
-    font: bold 15px "Open Sans", Arial, Helvetica, Sans-Serif;
-    text-decoration: none;
+    font-size: 30px;
+    text-align: center;
     background-color: #EEEEEE;
     color: #333333;
-    padding: 2px 6px 2px 6px;
+    width: 200px;
+    padding: 20px 0;
     border-top:    1px solid #CCCCCC;
     border-right:  1px solid #CCCCCC;
     border-bottom: 1px solid #CCCCCC;
