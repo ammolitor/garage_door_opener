@@ -36,14 +36,13 @@ def setup_logging(name, level):
     return log
 
 
-def publish_event(event):
+def publish_event(timestamp, event):
     """
     publish mqtt message
     :return:
     """
     message = {
-        'timestamp':
-        datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f'),
+        'timestamp': timestamp,
         'event': event,
     }
     topic = 'garage_door_opener/events'
@@ -84,16 +83,17 @@ class Door:
         :return:
         """
         LOG.debug('********** Door.callback **********')
+        event_ts = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')
         if GPIO.input(channel) == 1:
             self.state = 'OPEN'
             LOG.info('DOOR IS NOW OPEN (1)')
             if publish:
-                publish_event('door_open')
+                publish_event(event_ts, 'door_open')
         elif GPIO.input(channel) == 0:
             self.state = 'CLOSED'
             LOG.info('DOOR IS NOW CLOSED (0)')
             if publish:
-                publish_event('door_closed')
+                publish_event(event_ts, 'door_closed')
         else:
             LOG.error('unable to read %s', channel)
 

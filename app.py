@@ -37,14 +37,13 @@ def setup_logging(name, level):
     return log
 
 
-def publish_event(source):
+def publish_event(timestamp, source):
     """
     publish mqtt message
     :return:
     """
     message = {
-        'timestamp':
-        datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f'),
+        'timestamp': timestamp,
         'event': 'door_activated',
         'source': source
     }
@@ -68,8 +67,9 @@ def callback(client, userdata, message):
     LOG.debug('raw message: %s', )
     LOG.info('received message: %s on topic: %s', message.payload,
              message.topic)
+    event_ts = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')
     activate()
-    publish_event('mqtt')
+    publish_event(event_ts, 'mqtt')
 
 
 def door_status():
@@ -140,8 +140,9 @@ def push_button():
     handle the button press (activate the GPIO pin to trigger the relay)
     :return:
     """
+    event_ts = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')
     activate()
-    publish_event('web interface')
+    publish_event(event_ts, 'web interface')
     time.sleep(10)  # wait for door to close before returning
     return flask.redirect(flask.url_for('index'))
 
@@ -161,16 +162,17 @@ if __name__ == '__main__':
     MQTT_CLIENT.configureCredentials(CA_FILE_PATH, PRIVATE_KEY_PATH,
                                      CERTIFICATE_PATH)
     MQTT_CLIENT.configureAutoReconnectBackoffTime(1, 32, 20)
-    MQTT_CLIENT.configureOfflinePublishQueueing(0)
+    MQTT_CLIENT.configureOfflinePublishQueueing(-1)
+    MQTT_CLIENT.configureDrainingFrequency(2)
     MQTT_CLIENT.configureConnectDisconnectTimeout(10)
     MQTT_CLIENT.configureMQTTOperationTimeout(5)
     LOG.debug('CONNECT: CAFilePath: %s  KeyPath: %s  CertificatePath: %s',
               CA_FILE_PATH, PRIVATE_KEY_PATH, CERTIFICATE_PATH)
     MQTT_CLIENT.connect()
-
-try:
     # MQTT_CLIENT.subscribe('garage_door_opener/commands', 0, callback)
-    APP.run(host='0.0.0.0', port=80, debug=False)
-finally:
-    LOG.debug('CLEANING UP')
-    GPIO.cleanup()
+
+    try:
+        APP.run(host='0.0.0.0', port=80, debug=False)
+    finally:
+        LOG.debug('CLEANING UP')
+        GPIO.cleanup()
