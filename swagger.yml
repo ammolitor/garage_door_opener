@@ -1,0 +1,38 @@
+swagger: '2.0'
+info:
+  version: 0.0.1
+  title: garage_door
+  description: "garage door api"
+  termsOfService: terms
+  contact:
+    name: "Admin Istrator"
+    url: "http://192.168.1.1/administrator"
+    email: "admin@istrator.com"
+  license:
+    name: MIT
+    url: http://opensource.org/licenses/MIT
+paths:
+  /status:
+    get:
+      summary: "get door status"
+      description: "is door open or closed"
+      operationId: door.status
+      responses:
+        200:
+          description: OK
+  /open:
+    post:
+      summary: "open door"
+      description: "opens door if not already open"
+      operationId: door.open_door
+      responses:
+        200:
+          description: OK
+  /close:
+    post:
+      summary: "close door"
+      description: "closes door if not already closed"
+      operationId: door.close_door
+      responses:
+        200:
+          description: OK

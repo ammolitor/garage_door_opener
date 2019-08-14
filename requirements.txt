@@ -1,3 +1,5 @@
-Flask==1.0.2
-RPi.GPIO==0.6.5
+flask_cors==3.0.7
+connexion==2.3.0
+tornado==5.1.1
+# RPi.GPIO==0.6.5
 AWSIoTPythonSDK==1.4.4
