@@ -1,5 +1,5 @@
 # garage_door_opener
-simple Flask app to host a garage door button
+simple api for a garage door
 
 ### Basic Pi Setup
 ```
@@ -13,14 +13,19 @@ sudo apt-get install -y git python3-pip
 sudo mkdir -p /opt/src
 sudo chown -R pi:pi /opt/src
 git clone https://github.com/ammolitor/garage_door_opener.git
+```
+
+### Install project requirements
+NOTE: this must be run with sudo (or as `root`) for the systemd service to run
+```
 sudo pip3 install -r /opt/src/garage_door_opener/requirements.txt
 ```
 
-### Install and enable the opener service
+### Install and enable the api service
 ```
-sudo ln -s /opt/src/garage_door_opener/door_opener.service /etc/systemd/system/door_opener.service
-sudo systemctl enable door_opener.service
-sudo systemctl start door_opener.service
+sudo ln -s /opt/src/garage_door_opener/door_api.service /etc/systemd/system/door_api.service
+sudo systemctl enable door_api.service
+sudo systemctl start door_api.service
 ```
 
 ### Install and enable the monitor service
