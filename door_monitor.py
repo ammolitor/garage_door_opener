@@ -7,32 +7,25 @@ import json
 import logging
 import threading
 import time
+import requests
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
-import RPi.GPIO as GPIO
-
-SENSE_GPIO = 2
 
 
 def setup_logging(name, level):
     """
     configure logger for module
-
     :param name:
     :param level:
     :return:
     """
+    formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     log = logging.getLogger(name)
     log.setLevel(level)
-
     console_handler = logging.StreamHandler()
     console_handler.setLevel(level)
-
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     console_handler.setFormatter(formatter)
-
     log.addHandler(console_handler)
-
     return log
 
 
@@ -59,53 +52,54 @@ class Door:
     until the application exits.
     """
 
-    def __init__(self, interval=5, channel=SENSE_GPIO):
+    def __init__(self, interval=1):
         """
         Constructor
         :type interval: int
         :param interval: Check interval, in seconds
-        :type channel: int
-        :param channel: GPIO (BCM mode) pin to watch
         """
         self.interval = interval
         self.state = None
-        self.channel = channel
 
         thread = threading.Thread(target=self.run, args=())
         thread.daemon = True
         thread.start()
 
-    def callback(self, channel, publish=True):
+    def callback(self, door_status, publish=True):
         """
         callback method for event detector
-        :param channel:
+        :param door_status:
         :param publish:
         :return:
         """
         LOG.debug('********** Door.callback **********')
         event_ts = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')
-        if GPIO.input(channel) == 1:
+        if door_status == 'OPEN':
             self.state = 'OPEN'
             LOG.info('DOOR IS NOW OPEN (1)')
             if publish:
                 publish_event(event_ts, 'door_open')
-        elif GPIO.input(channel) == 0:
+        elif door_status == 'CLOSED':
             self.state = 'CLOSED'
             LOG.info('DOOR IS NOW CLOSED (0)')
             if publish:
                 publish_event(event_ts, 'door_closed')
         else:
-            LOG.error('unable to read %s', channel)
+            LOG.error('unable to read %s', door_status)
 
     def run(self):
         """
             Method that runs forever
         """
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(SENSE_GPIO, GPIO.IN)
-        self.callback(self.channel, publish=False)
-        GPIO.add_event_detect(self.channel, GPIO.BOTH, callback=self.callback)
+        f_door_status = requests.get(
+            'http://localhost:5000/status').json().get('status')
+        self.callback(f_door_status, publish=False)
         while True:
+            c_door_status = requests.get(
+                'http://localhost:5000/status').json().get('status')
+            if f_door_status != c_door_status:
+                self.callback(c_door_status, publish=True)
+                f_door_status = c_door_status
             time.sleep(self.interval)
             LOG.debug('.')
 
@@ -115,7 +109,7 @@ if __name__ == '__main__':
     MQTT_LOG = setup_logging('AWSIoTPythonSDK.core', logging.INFO)
 
     CLIENT_ID = 'garage_door_opener'
-    ENDPOINT = 'MYENDPOINT.iot.us-east-1.amazonaws.com'
+    ENDPOINT = 'ad4bgf9zw53fx-ats.iot.us-east-1.amazonaws.com'
     CA_FILE_PATH = '/opt/aws/iot/root-CA.crt'
     PRIVATE_KEY_PATH = '/opt/aws/iot/garage_door_opener.private.key'
     CERTIFICATE_PATH = '/opt/aws/iot/garage_door_opener.cert.pem'
@@ -139,4 +133,3 @@ if __name__ == '__main__':
             time.sleep(60)
     finally:
         LOG.info('EXITING, CLEANING UP')
-        GPIO.cleanup()
