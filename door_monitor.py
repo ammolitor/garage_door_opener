@@ -5,6 +5,7 @@
 import datetime
 import json
 import logging
+import logging.config
 import threading
 import time
 import requests
@@ -13,20 +14,35 @@ from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 
 def setup_logging(name, level):
     """
-    configure logger for module
+    setup logging
     :param name:
     :param level:
     :return:
     """
-    formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    log = logging.getLogger(name)
-    log.setLevel(level)
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(level)
-    console_handler.setFormatter(formatter)
-    log.addHandler(console_handler)
-    return log
+    logging.config.dictConfig({
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'default': {
+                'format':
+                    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            }
+        },
+        'handlers': {
+            'console': {
+                'level': level,
+                'class': 'logging.StreamHandler',
+                'formatter': 'default',
+                'stream': 'ext://sys.stdout'
+            }
+        },
+        'root': {
+            'handlers': ['console'],
+            'level': level,
+        },
+        'incremental': False,
+    })
+    return logging.getLogger(name)
 
 
 def publish_event(timestamp, event):

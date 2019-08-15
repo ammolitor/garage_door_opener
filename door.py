@@ -10,24 +10,6 @@ ACTIVATE_GPIO = 7
 SENSE_GPIO = 2
 
 
-def setup_logging(name, level):
-    """
-    configure logger for module
-    :param name:
-    :param level:
-    :return:
-    """
-    log = logging.getLogger(name)
-    log.setLevel(level)
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(level)
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    console_handler.setFormatter(formatter)
-    log.addHandler(console_handler)
-    return log
-
-
 def door_status():
     """
     fetch door status from GPIO pins (via reed switch)
@@ -39,10 +21,10 @@ def door_status():
     LOG.debug('door_status: ********** GPIO %s is: %s **********', SENSE_GPIO,
               GPIO.input(SENSE_GPIO))
     if GPIO.input(SENSE_GPIO) == 1:
-        LOG.info('door_status: DOOR OPEN')
+        LOG.debug('door_status: DOOR OPEN')
         ret_val = 'OPEN'
     elif GPIO.input(SENSE_GPIO) == 0:
-        LOG.info('door_status: DOOR CLOSED')
+        LOG.debug('door_status: DOOR CLOSED')
         ret_val = 'CLOSED'
     else:
         LOG.error('door_status: UNABLE TO GET DOOR STATUS')
@@ -94,4 +76,4 @@ def close_door():
         activate()
 
 
-LOG = setup_logging('garage_door_opener', logging.INFO)
+LOG = logging.getLogger('door_api_door')
